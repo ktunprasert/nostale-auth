@@ -119,6 +119,8 @@ func (c *Client) Login(email, password, locale string, manager identitymgr.Manag
 			return
 		case http.StatusConflict:
 			err = errCaptchaRequired
+			// tries to solve captcha
+			println(httpResp.Header.Get("gf-challenge-id"))
 			return
 		default:
 			return
