@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
+	"math/rand"
 	"net/http"
+	"time"
 )
 
 const (
 	_challengeUrl = "https://challenge.gameforge.com/challenge/%s" // uuid
-	_imageDropUrl = "https://image-drop-challenge.gameforge.com/challenge/%s/en-B"
+	_imageDropUrl = "https://image-drop-challenge.gameforge.com/challenge/%s/en-GB"
 )
 
 type CaptchaReponse struct {
@@ -30,12 +31,18 @@ type ChallengeBody struct {
 
 var client *http.Client
 
-func SolveCaptcha(uuid string) (string, error) {
+func SolveCaptcha(uuid string, headers http.Header) (string, error) {
 	if client == nil {
 		client = http.DefaultClient
 	}
 
-	res, err := client.Get(fmt.Sprintf(_challengeUrl, uuid))
+	req, err := http.NewRequest("GET", fmt.Sprintf(_challengeUrl, uuid), nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header = headers
+
+	res, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -57,7 +64,13 @@ func SolveCaptcha(uuid string) (string, error) {
 	}
 
 	// begin the challenge
-	imgDropRes, err := client.Get(fmt.Sprintf(_imageDropUrl, uuid))
+	imgDropReq, err := http.NewRequest("GET", fmt.Sprintf(_imageDropUrl, uuid), nil)
+	if err != nil {
+		return "", err
+	}
+	imgDropReq.Header = headers
+
+	imgDropRes, err := client.Do(imgDropReq)
 	if err != nil {
 		return "", err
 	}
@@ -76,8 +89,9 @@ func SolveCaptcha(uuid string) (string, error) {
 	// tries answer from 1 to 4
 	solvePayload := &ChallengeBody{}
 
-	for i := 1; i <= 4; i++ {
-		solvePayload.Answer = i
+	for range 10 {
+		time.Sleep(1 * time.Second) // Sleep for 1 second before each attempt
+		solvePayload.Answer = rand.Intn(3) + int(1)
 
 		// Marshal the payload to JSON bytes
 		bytePayload, err := json.Marshal(solvePayload)
@@ -86,12 +100,22 @@ func SolveCaptcha(uuid string) (string, error) {
 		}
 
 		// Create an io.Reader from the JSON bytes
-		payload := io.NopCloser(io.Reader(bytes.NewBuffer(bytePayload)))
+		payload := bytes.NewBuffer(bytePayload)
+
+		// Create POST request
+		req, err := http.NewRequest("POST", fmt.Sprintf(_imageDropUrl, uuid), payload)
+		if err != nil {
+			return "", fmt.Errorf("failed to create request with answer %d: %w", solvePayload.Answer, err)
+		}
+
+		// Set headers from parameter
+		req.Header = headers.Clone()
+		req.Header.Set("Content-Type", "application/json")
 
 		// Send the POST request
-		resp, err := client.Post(fmt.Sprintf(_imageDropUrl, uuid), "application/json", payload)
+		resp, err := client.Do(req)
 		if err != nil {
-			return "", fmt.Errorf("failed to submit captcha answer %d: %w", i, err)
+			return "", fmt.Errorf("failed to submit captcha answer %d: %w", solvePayload.Answer, err)
 		}
 		defer resp.Body.Close()
 
@@ -99,11 +123,11 @@ func SolveCaptcha(uuid string) (string, error) {
 
 		var respData ImageDropResponse
 		if err := json.NewDecoder(resp.Body).Decode(&respData); err != nil {
-			return "", fmt.Errorf("failed to decode response for answer %d: %w", i, err)
+			return "", fmt.Errorf("failed to decode response for answer %d: %w", solvePayload.Answer, err)
 		}
 
 		if respData.Status == "solved" {
-			fmt.Printf("Captcha solved with answer %d\n", i)
+			fmt.Printf("Captcha solved with answer %d\n", solvePayload.Answer)
 			return uuid, nil
 		}
 	}

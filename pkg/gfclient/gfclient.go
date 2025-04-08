@@ -130,7 +130,7 @@ func (c *Client) Login(email, password, locale string, manager identitymgr.Manag
 				}
 
 				challengeId := strings.Split(gfChallengeHeader, ";")[0]
-				gfChallengeId, err := SolveCaptcha(challengeId)
+				gfChallengeId, err := SolveCaptcha(challengeId, header)
 				if err != nil {
 					return "", err
 				}
