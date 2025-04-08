@@ -1,4 +1,4 @@
-module github.com/stdLemon/nostale-auth
+module github.com/ktunprasert/nostale-auth
 
 go 1.18
 
