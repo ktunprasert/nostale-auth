@@ -135,7 +135,7 @@ func (c *Client) Login(email, password, locale string, manager identitymgr.Manag
 					return "", err
 				}
 
-				header.Set("gf-challenge-id", gfChallengeId)
+				header["gf-challenge-id"] = []string{gfChallengeId}
 
 			default:
 				return "", fmt.Errorf("got unexpected status code: %d", httpResp.StatusCode)
