@@ -92,10 +92,10 @@ func New(gfUserAgent, installationId string) *Client {
 	}
 }
 
-func (c *Client) Login(email, password, locale string, manager identitymgr.Manager) (bearer string, err error) {
+func (c *Client) Login(email, password, locale string, manager identitymgr.Manager) (string, error) {
 	blackbox, err := manager.NewBlackbox(nil)
 	if err != nil {
-		return
+		return "", err
 	}
 
 	body, err := json.Marshal(map[string]string{
@@ -105,38 +105,57 @@ func (c *Client) Login(email, password, locale string, manager identitymgr.Manag
 		"blackbox": blackbox.String(),
 	})
 	if err != nil {
-		return
+		return "", err
 	}
 
 	header := headerOrigin()
 	maps.Copy(header, headerJsonContentType())
 
-	httpResp, err := c.makeRequest(http.MethodPost, _sessionsEndpoint, http.StatusCreated, bytes.NewBuffer(body), header)
-	if err != nil {
-		switch httpResp.StatusCode {
-		case http.StatusForbidden:
-			err = errInvalidAccountData
-			return
-		case http.StatusConflict:
-			err = errCaptchaRequired
-			// tries to solve captcha
-			println(httpResp.Header.Get("gf-challenge-id"))
-			return
-		default:
-			return
-		}
+	var httpResp *http.Response
+	for {
+		httpResp, err := c.makeRequest(http.MethodPost, _sessionsEndpoint, http.StatusCreated, bytes.NewBuffer(body), header)
+		if err != nil {
+			switch httpResp.StatusCode {
+			case http.StatusForbidden:
+				return "", errInvalidAccountData
+			case http.StatusConflict:
+				// tries to solve captcha
+				// returns for example
+				// 3f316aef-1d86-4f94-b7df-07d55b966151;https://challenge.gameforge.com
+				// try to parse this
+				println(httpResp.Header.Get("gf-challenge-id"))
+				gfChallengeHeader := httpResp.Header.Get("gf-challenge-id")
+				if gfChallengeHeader == "" {
+					return "", fmt.Errorf("gf-challenge-id header not found")
+				}
 
+				challengeId := strings.Split(gfChallengeHeader, ";")[0]
+				gfChallengeId, err := SolveCaptcha(challengeId)
+				if err != nil {
+					return "", err
+				}
+
+				header.Set("gf-challenge-id", gfChallengeId)
+
+			default:
+				return "", fmt.Errorf("got unexpected status code: %d", httpResp.StatusCode)
+			}
+
+			if httpResp.StatusCode == http.StatusOK {
+				break
+			}
+		}
 	}
 
 	authResp := AuthResponse{}
 	err = json.NewDecoder(httpResp.Body).Decode(&authResp)
 	if err != nil {
-		return
+		return "", err
 	}
 
 	if authResp.Token == "" {
 		err = errTokenNotSent
-		return
+		return "", err
 	}
 
 	return authResp.Token, nil
