@@ -16,7 +16,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/stdLemon/nostale-auth/pkg/identitymgr"
+	"github.com/ktunprasert/nostale-auth/pkg/identitymgr"
 )
 
 type Client struct {

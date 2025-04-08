@@ -10,7 +10,7 @@ Library for obtaining code used in login packet (NoS0577)
     2. Find out what is the minimum and maximum timing for *d* field
 
 5. Create and fill *account.json* basing on template `mv account_template.json account.json`
-6. Example code can be found in [gfclient_test.go](https://github.com/stdLemon/nostale-auth/blob/main/pkg/gfclient/gfclient_test.go)
+6. Example code can be found in [gfclient_test.go](https://github.com/ktunprasert/nostale-auth/blob/main/pkg/gfclient/gfclient_test.go)
 
 ## Timings example
 Assuming that three blackboxes with timings listed below were captured

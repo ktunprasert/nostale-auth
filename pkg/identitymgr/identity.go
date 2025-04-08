@@ -3,7 +3,7 @@ package identitymgr
 import (
 	"math/rand"
 
-	"github.com/stdLemon/nostale-auth/pkg/blackbox"
+	"github.com/ktunprasert/nostale-auth/pkg/blackbox"
 )
 
 type TimingRange struct {

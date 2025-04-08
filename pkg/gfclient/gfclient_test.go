@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stdLemon/nostale-auth/pkg/identitymgr"
+	"github.com/ktunprasert/nostale-auth/pkg/identitymgr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

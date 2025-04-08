@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/stdLemon/nostale-auth/pkg/blackbox"
+	"github.com/ktunprasert/nostale-auth/pkg/blackbox"
 )
 
 type Manager struct {
